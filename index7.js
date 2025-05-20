@@ -3,3 +3,4 @@ function esperarTresSegundos() {
     setTimeout(() => resolve("Listo"), 3000);
   });
 }
+ejecutarProceso();
