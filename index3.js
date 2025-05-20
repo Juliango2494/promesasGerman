@@ -1,11 +1,42 @@
 // 3. Encadenamiento de Promesas
 // Simular un flujo de pasos donde cada paso tarda 1 segundo en completarse. Usar tres promesas y encadenarlas con .then() para que se ejecuten en orden.
 
-const promesa2 = new Promise((resolve) => {setTimeout(()=>resolve("ya"), 2000)});
-console.log("inicia")
-promesa2.then((mensaje) => { console.log(mensaje)});
+console.log("Inicia");
 
-const promesEncad = new Promise((resolve, reject)=>{
-    resolve("Iniciando el paso 1")
-}
-);
+const paso1 = () => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve("Paso 1 completado");
+        }, 1000);
+    });
+};
+
+const paso2 = () => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve("Paso 2 completado");
+        }, 1000);
+    });
+};
+
+const paso3 = () => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve("Paso 3 completado");
+        }, 1000);
+    });
+};
+
+paso1()
+    .then((resultado1) => {
+        console.log(resultado1);
+        return paso2();
+    })
+    .then((resultado2) => {
+        console.log(resultado2);
+        return paso3();
+    })
+    .then((resultado3) => {
+        console.log(resultado3);
+        console.log("Todos los pasos han sido completados");
+    });
