@@ -1,46 +1,53 @@
-async function sendToAllAIs() {
-    const inputText = "devuelve las cadenas de texto 'positivo' o 'negativo' tal cual esta entre comillas, si el siguiente promp de comentario es positivo o es negativo:"+document.getElementById('inputText').value;
-    const responseContainer = document.getElementById('responseContainer');
-    const loader = document.getElementById('loader');
-    
-    const geminiApiKey = "AIzaSyC-eZMGzq9WwTtKC6_8R4cOme1mMhMgnMw";
-    const cohereApiKey = "FIpPyrP5ICP0mP8FDnNAIybjHYJ93MbDzNRivvMa";
-    const mistralApiKey = "y453v5db7elFXDm3UyNNNZeWyBqbmuTU";
+require('dotenv').config();
+const express = require('express');
+const path = require('path');
+const cors = require('cors');
 
-    if (!inputText.trim()) {
-        responseContainer.innerHTML = "<div style='text-align: center; color: #666;'>Por favor, ingresa algún texto.</div>";
-        return;
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname)));
+
+// Endpoint para obtener las respuestas de las IAs
+app.post('/api/query', async (req, res) => {
+    const { inputText } = req.body;
+    
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    const cohereApiKey = process.env.COHERE_API_KEY;
+    const mistralApiKey = process.env.MISTRAL_API_KEY;
+
+    if (!inputText || !inputText.trim()) {
+        return res.status(400).json({ error: 'Por favor, proporciona un texto válido.' });
     }
 
     if (!geminiApiKey || !cohereApiKey || !mistralApiKey) {
-        responseContainer.innerHTML = "<div style='text-align: center; color: red;'><strong>Error:</strong> Faltan claves API necesarias. Verifica tu archivo .env</div>";
-        return;
+        return res.status(500).json({ error: 'Faltan claves API necesarias. Verifica tu archivo .env' });
     }
-
-    responseContainer.innerHTML = ""; 
-    loader.style.display = 'block'; 
 
     try {
         const geminiPromise = fetchGeminiResponse(inputText, geminiApiKey);
         const coherePromise = fetchCohereResponse(inputText, cohereApiKey);
         const mistralPromise = fetchMistralResponse(inputText, mistralApiKey);
         
-        // Ejecutar las tres promesas en paralelo
         const [geminiResponse, cohereResponse, mistralResponse] = await Promise.all([
             geminiPromise, 
             coherePromise, 
             mistralPromise
         ]);
         
-        // Mostrar las respuestas
-        displayResponses(geminiResponse, cohereResponse, mistralResponse, responseContainer);
+        res.json({
+            gemini: geminiResponse,
+            cohere: cohereResponse,
+            mistral: mistralResponse
+        });
     } catch (error) {
         console.error("Error en las solicitudes:", error);
-        responseContainer.innerHTML = "<div style='text-align: center; color: red;'>Error al conectar con las APIs. Revisa la consola para más detalles.</div>";
-    } finally {
-        loader.style.display = 'none'; 
+        res.status(500).json({ error: 'Error al conectar con las APIs' });
     }
-}
+});
 
 async function fetchGeminiResponse(inputText, apiKey) {
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
@@ -215,21 +222,6 @@ async function fetchMistralResponse(inputText, apiKey) {
     }
 }
 
-function displayResponses(geminiResponse, cohereResponse, mistralResponse, container) {
-    container.innerHTML = `
-        <div class="response-box gemini">
-            <h3>🔷 Respuesta de Gemini</h3>
-            <div>${geminiResponse.success ? geminiResponse.text.replace(/\n/g, '<br>') : `<span style="color: red;">${geminiResponse.error}</span>`}</div>
-        </div>
-        
-        <div class="response-box cohere">
-            <h3>🟠 Respuesta de Cohere</h3>
-            <div>${cohereResponse.success ? cohereResponse.text.replace(/\n/g, '<br>') : `<span style="color: red;">${cohereResponse.error}</span>`}</div>
-        </div>
-        
-        <div class="response-box mistral">
-            <h3>🟣 Respuesta de Mistral</h3>
-            <div>${mistralResponse.success ? mistralResponse.text.replace(/\n/g, '<br>') : `<span style="color: red;">${mistralResponse.error}</span>`}</div>
-        </div>
-    `;
-}
+app.listen(PORT, () => {
+    console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
+});
