@@ -1,39 +1,44 @@
-async function sendToGemini() {
+async function sendToAllAIs() {
     const inputText = document.getElementById('inputText').value;
     const responseContainer = document.getElementById('responseContainer');
     const loader = document.getElementById('loader');
     
-    // Extraer las API keys del entorno
-    const geminiApiKey = "AIzaSyC-eZMGzq9WwTtKC6_8R4cOme1mMhMgnMw";
-    const openaiApiKey = "sk-8a854894bfd246e7a2f83c365d525139";
+    const geminiApiKey = GEMINI_API_KEY;
+    const cohereApiKey = COHERE_API_KEY;
+    const mistralApiKey = MISTRAL_API_KEY;
+
     if (!inputText.trim()) {
-        responseContainer.textContent = "Por favor, ingresa algún texto.";
+        responseContainer.innerHTML = "<div style='text-align: center; color: #666;'>Por favor, ingresa algún texto.</div>";
         return;
     }
 
-    if (!geminiApiKey || !openaiApiKey) {
-        responseContainer.innerHTML = "<strong>Error:</strong> Faltan claves API necesarias.";
+    if (!geminiApiKey || !cohereApiKey || !mistralApiKey) {
+        responseContainer.innerHTML = "<div style='text-align: center; color: red;'><strong>Error:</strong> Faltan claves API necesarias. Verifica tu archivo .env</div>";
         return;
     }
 
-    responseContainer.textContent = ""; // Limpiar respuesta anterior
-    loader.style.display = 'block'; // Mostrar loader
+    responseContainer.innerHTML = ""; 
+    loader.style.display = 'block'; 
 
     try {
-        // Crear ambas promesas
         const geminiPromise = fetchGeminiResponse(inputText, geminiApiKey);
-        const openaiPromise = fetchOpenAIResponse(inputText, openaiApiKey);
+        const coherePromise = fetchCohereResponse(inputText, cohereApiKey);
+        const mistralPromise = fetchMistralResponse(inputText, mistralApiKey);
         
-        // Ejecutar ambas promesas en paralelo
-        const [geminiResponse, openaiResponse] = await Promise.all([geminiPromise, openaiPromise]);
+        // Ejecutar las tres promesas en paralelo
+        const [geminiResponse, cohereResponse, mistralResponse] = await Promise.all([
+            geminiPromise, 
+            coherePromise, 
+            mistralPromise
+        ]);
         
         // Mostrar las respuestas
-        displayResponses(geminiResponse, openaiResponse, responseContainer);
+        displayResponses(geminiResponse, cohereResponse, mistralResponse, responseContainer);
     } catch (error) {
         console.error("Error en las solicitudes:", error);
-        responseContainer.textContent = "Error al conectar con las APIs. Revisa la consola para más detalles.";
+        responseContainer.innerHTML = "<div style='text-align: center; color: red;'>Error al conectar con las APIs. Revisa la consola para más detalles.</div>";
     } finally {
-        loader.style.display = 'none'; // Ocultar loader
+        loader.style.display = 'none'; 
     }
 }
 
@@ -98,17 +103,17 @@ async function fetchGeminiResponse(inputText, apiKey) {
     }
 }
 
-async function fetchOpenAIResponse(inputText, apiKey) {
-    const API_URL = "https://api.openai.com/v1/chat/completions";
+async function fetchCohereResponse(inputText, apiKey) {
+    const API_URL = "https://api.cohere.ai/v1/generate";
 
     const requestBody = {
-        "model": "gpt-3.5-turbo",
-        "messages": [
-            {
-                "role": "user",
-                "content": inputText
-            }
-        ]
+        "model": "command",
+        "prompt": inputText,
+        "max_tokens": 300,
+        "temperature": 0.7,
+        "k": 0,
+        "stop_sequences": [],
+        "return_likelihoods": "NONE"
     };
 
     try {
@@ -123,7 +128,64 @@ async function fetchOpenAIResponse(inputText, apiKey) {
 
         if (!response.ok) {
             const errorData = await response.json();
-            console.error("Error en la API de OpenAI:", errorData);
+            console.error("Error en la API de Cohere:", errorData);
+            return {
+                success: false,
+                error: `Error: ${response.status} - ${errorData.message || 'Error desconocido'}`
+            };
+        }
+
+        const data = await response.json();
+
+        if (data.generations && data.generations.length > 0 && data.generations[0].text) {
+            return {
+                success: true,
+                text: data.generations[0].text.trim()
+            };
+        } else {
+            console.log("Respuesta completa de la API Cohere:", data);
+            return {
+                success: false,
+                error: "No se recibió contenido en la respuesta o la estructura es inesperada."
+            };
+        }
+    } catch (error) {
+        console.error("Error en la solicitud a Cohere:", error);
+        return {
+            success: false,
+            error: "Error al conectar con la API de Cohere."
+        };
+    }
+}
+
+async function fetchMistralResponse(inputText, apiKey) {
+    const API_URL = "https://api.mistral.ai/v1/chat/completions";
+
+    const requestBody = {
+        "model": "mistral-small-latest",
+        "messages": [
+            {
+                "role": "user",
+                "content": inputText
+            }
+        ],
+        "max_tokens": 300,
+        "temperature": 0.7
+    };
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Error en la API de Mistral:", errorData);
             return {
                 success: false,
                 error: `Error: ${response.status} - ${errorData.error?.message || 'Error desconocido'}`
@@ -138,31 +200,36 @@ async function fetchOpenAIResponse(inputText, apiKey) {
                 text: data.choices[0].message.content
             };
         } else {
-            console.log("Respuesta completa de la API OpenAI:", data);
+            console.log("Respuesta completa de la API Mistral:", data);
             return {
                 success: false,
                 error: "No se recibió contenido en la respuesta o la estructura es inesperada."
             };
         }
     } catch (error) {
-        console.error("Error en la solicitud a OpenAI:", error);
+        console.error("Error en la solicitud a Mistral:", error);
         return {
             success: false,
-            error: "Error al conectar con la API de OpenAI."
+            error: "Error al conectar con la API de Mistral."
         };
     }
 }
 
-function displayResponses(geminiResponse, openaiResponse, container) {
+function displayResponses(geminiResponse, cohereResponse, mistralResponse, container) {
     container.innerHTML = `
-        <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
-            <h3 style="margin-top: 0;">Respuesta de Gemini:</h3>
-            <div>${geminiResponse.success ? geminiResponse.text : `<span style="color: red;">${geminiResponse.error}</span>`}</div>
+        <div class="response-box gemini">
+            <h3>🔷 Respuesta de Gemini</h3>
+            <div>${geminiResponse.success ? geminiResponse.text.replace(/\n/g, '<br>') : `<span style="color: red;">${geminiResponse.error}</span>`}</div>
         </div>
         
-        <div style="padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
-            <h3 style="margin-top: 0;">Respuesta de OpenAI:</h3>
-            <div>${openaiResponse.success ? openaiResponse.text : `<span style="color: red;">${openaiResponse.error}</span>`}</div>
+        <div class="response-box cohere">
+            <h3>🟠 Respuesta de Cohere</h3>
+            <div>${cohereResponse.success ? cohereResponse.text.replace(/\n/g, '<br>') : `<span style="color: red;">${cohereResponse.error}</span>`}</div>
+        </div>
+        
+        <div class="response-box mistral">
+            <h3>🟣 Respuesta de Mistral</h3>
+            <div>${mistralResponse.success ? mistralResponse.text.replace(/\n/g, '<br>') : `<span style="color: red;">${mistralResponse.error}</span>`}</div>
         </div>
     `;
 }
