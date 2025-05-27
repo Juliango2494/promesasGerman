@@ -4,8 +4,8 @@ async function sendToGemini() {
     const loader = document.getElementById('loader');
     
     // Extraer las API keys del entorno
-    const geminiApiKey = GEMINI_API_KEY;
-    const openaiApiKey = OPEN_API_KEY;
+    const geminiApiKey = "AIzaSyC-eZMGzq9WwTtKC6_8R4cOme1mMhMgnMw";
+    const openaiApiKey = "sk-8a854894bfd246e7a2f83c365d525139";
     if (!inputText.trim()) {
         responseContainer.textContent = "Por favor, ingresa algún texto.";
         return;
