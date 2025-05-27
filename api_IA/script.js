@@ -1,11 +1,11 @@
 async function sendToAllAIs() {
-    const inputText = document.getElementById('inputText').value;
+    const inputText = "devuelve las cadenas de texto 'positivo' o 'negativo' tal cual esta entre comillas, si el siguiente promp de comentario es positivo o es negativo:"+document.getElementById('inputText').value;
     const responseContainer = document.getElementById('responseContainer');
     const loader = document.getElementById('loader');
     
-    const geminiApiKey = GEMINI_API_KEY;
-    const cohereApiKey = COHERE_API_KEY;
-    const mistralApiKey = MISTRAL_API_KEY;
+    const geminiApiKey = "AIzaSyC-eZMGzq9WwTtKC6_8R4cOme1mMhMgnMw";
+    const cohereApiKey = "FIpPyrP5ICP0mP8FDnNAIybjHYJ93MbDzNRivvMa";
+    const mistralApiKey = "y453v5db7elFXDm3UyNNNZeWyBqbmuTU";
 
     if (!inputText.trim()) {
         responseContainer.innerHTML = "<div style='text-align: center; color: #666;'>Por favor, ingresa algún texto.</div>";
