@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: sentiment-analysis-ai
+    env: node
+    plan: free
+    branch: deploy
+    buildFilter:
+      paths:
+        - "**"
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: COHERE_API_KEY
+        sync: false
+      - key: MISTRAL_API_KEY
+        sync: false
+    domains:
+      - type: apex
+      - type: www
+    healthCheckPath: /
+    autoDeploy: true
