@@ -1,5 +1,5 @@
 async function sendToAllAIs() {
-    const inputText = document.getElementById('inputText').value;
+    var inputText = document.getElementById('inputText').value;
     const responseContainer = document.getElementById('responseContainer');
     const loader = document.getElementById('loader');
 
@@ -12,6 +12,7 @@ async function sendToAllAIs() {
     loader.style.display = 'block'; 
 
     try {
+        inputText = "Devuelve 'positivo' o 'negativo' (tal cual está entre comillas), sin ningun texto adicional y en español, si el siguiente promp de comentario es positivo o es negativo:" + inputText;
         const response = await fetch('/api/query', {
             method: 'POST',
             headers: {
@@ -35,21 +36,37 @@ async function sendToAllAIs() {
     }
 }
 
+function interpretarRespuesta(nombreIA, respuestaObj) {
+    if (!respuestaObj.success) {
+        return `<span style="color: red;">${respuestaObj.error}</span>`;
+    }
+
+    const texto = respuestaObj.text.toLowerCase();
+
+    if (texto.includes("positivo")) {
+        return `La IA <strong>${nombreIA}</strong> indica que el comentario fue <strong style="color: green;">positivo</strong>.`;
+    } else if (texto.includes("negativo")) {
+        return `La IA <strong>${nombreIA}</strong> indica que el comentario fue <strong style="color: red;">negativo</strong>.`;
+    } else {
+        return `La IA <strong>${nombreIA}</strong> devolvió una respuesta no reconocida: "${respuestaObj.text}"`;
+    }
+}
+
 function displayResponses(geminiResponse, cohereResponse, mistralResponse, container) {
     container.innerHTML = `
         <div class="response-box gemini">
             <h3>🔷 Respuesta de Gemini</h3>
-            <div>${geminiResponse.success ? geminiResponse.text.replace(/\n/g, '<br>') : `<span style="color: red;">${geminiResponse.error}</span>`}</div>
+            <div>${interpretarRespuesta("Gemini", geminiResponse)}</div>
         </div>
         
         <div class="response-box cohere">
             <h3>🟠 Respuesta de Cohere</h3>
-            <div>${cohereResponse.success ? cohereResponse.text.replace(/\n/g, '<br>') : `<span style="color: red;">${cohereResponse.error}</span>`}</div>
+            <div>${interpretarRespuesta("Cohere", cohereResponse)}</div>
         </div>
         
         <div class="response-box mistral">
             <h3>🟣 Respuesta de Mistral</h3>
-            <div>${mistralResponse.success ? mistralResponse.text.replace(/\n/g, '<br>') : `<span style="color: red;">${mistralResponse.error}</span>`}</div>
+            <div>${interpretarRespuesta("Mistral", mistralResponse)}</div>
         </div>
     `;
 }
